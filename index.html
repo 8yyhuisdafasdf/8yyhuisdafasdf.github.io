@@ -1,28 +1,115 @@
 <!DOCTYPE html>
-<html>
-
+<!-- 언어를 한글로 설정함-->
+<html lang="ko">
 <head>
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://mocha.udon.party/" />
-    <meta property="og:title" content="좋아해요 수미!" />
-    <meta property="og:description" content="왕 귀여운 수미와 차차! 이것이 개발자다! (희망편)" />
-    <meta property="og:image" content="https://mocha.udon.party/image.png" />
-    <link rel="icon" href="./image.png">
-    <meta charset="UTF-8">
-    <title>날짜 계산기!</title>
-    <link href="https://fonts.googleapis.com/css?family=Lato|Montserrat|Rubik+Mono+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="index.css">
+  <meta charset="utf-8">
+  <!-- PWA 매너페스트 파일 연결, 상태바 테마색상을 흰색으로 변경 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- 모바일 기기 뷰포트, 브라우저 주소줄 파비콘 설정-->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="./images/icon.png">
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://mocha.udon.party/" />
+  <meta property="og:title" content="좋아해요 수미!" />
+  <meta property="og:description" content="왕 귀여운 수미와 차차! 이것이 개발자다! (희망편)" />
+  <meta property="og:image" content="https://mocha.udon.party/icon.png" />
+  <link rel="icon" href="./images/icon.png">
+  <meta charset="UTF-8">
+  <title>날짜 계산기!</title>
+  <link href="https://fonts.googleapis.com/css?family=Lato|Montserrat|Rubik+Mono+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+
 </head>
 
 <body>
-    <div class="main">
+  
+      <div class="main">
         <h1>꺄아아아<sup>몰라 몰라</sup>꺄아아아<sup>몰라 몰라</sup></h1>
-        <div id="countdown">
-        </div>
+        <div id="countdown" />
+      </div>
 
-    </div>
-    </div>
-    <script src="index.js"></script>
+  
+  
+  <script>
+    /*
+    * 1. 최초
+    * 서비스워커 등록시도 -> install 완료 -> (필요시) 캐시스토리지저장 -> 서비스 워커 등록 완료 -> activate!
+    *
+    * 2. 최초가 이닌경우
+    * fetch 이벤트 발생 -> http request에 캐시스토리지에 데이터가 있자면 캐시데이터 리턴, 없으면 네트워크 요청 -> 서비스 워커 등록완료
+    */
+
+
+    // New Service Worker
+    let newWorker;
+
+    function showUpdateBar() {
+      let snackbar = document.getElementById('snackbar');
+      snackbar.className = 'show';
+    }
+
+    // The click event on the notification
+    document.getElementById('reload').addEventListener('click', function(){
+      newWorker.postMessage({action: 'skipWaiting'});
+    });
+
+    // 1. 서비스 워커 등록
+    if('serviceWorker' in navigator){
+
+      console.log('1. 서비스 워커 등록 시도');
+      navigator.serviceWorker.register('./service_worker.js').then(function(reg){
+        console.log('1. 서비스 워커 등록완료 ::', reg);
+        reg.addEventListener('updatefound', function(){
+
+          console.log('updatefound!!!', reg.installing);
+
+          // An updated service worker has appeared in reg.installing!
+          // 업데이트된 서비스 워커가 나타나면
+          newWorker = reg.installing;
+
+          newWorker.addEventListener('statechange', function(){
+
+            console.log('statechange::', newWorker.state, navigator.serviceWorker);
+            // Has service worker state changed ?
+            switch(newWorker.state){
+              case 'installed':
+
+                console.log('newWorker.state is installed', navigator.serviceWorker.controller)
+                // There is a new service worker available,show the notification
+                // 새로운 서비스 워커가 있으면 노티를 보여줘라
+                if(navigator.serviceWorker.controller){
+                  console.log('navigator.serviceWorker.controller');
+                  showUpdateBar();
+                }
+
+              break;
+            }
+
+          });
+        });
+      });
+
+
+      let refreshing;
+      // The event listener that is fired when the service worker updates
+      // Here we reload the page
+      // 서비스워커가 업데이트 될 때 실행됨
+      navigator.serviceWorker.addEventListener('controllerchange', function(){
+        // console.log('controllerchange 발생!!', refreshing);
+        // if (refreshing) return;
+        // console.log('reload 오나 ???');
+        // window.location.reload();
+        // refreshing = true;
+         console.log('controllerchange 새로고침!!');
+         window.location.reload();
+        //if()
+      });
+    }
+  </script>
+  <script src="index.js"></script>
 </body>
 
 </html>
